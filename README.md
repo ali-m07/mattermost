@@ -1,116 +1,160 @@
-# Mattermost User Management
+# Mattermost User Management — cURL Guide
 
-A practical guide for looking up Mattermost users, listing accounts, and activating or deactivating them through the **REST API v4**.
+A copy-paste-ready reference for managing Mattermost users from the command line using the **REST API v4** — look users up, list them, and activate or deactivate accounts, with nothing but `curl` and a Personal Access Token.
 
-Use a Personal Access Token from an account with the required user-management permissions. Do not commit tokens to this repository.
+> **Interactive guide:** https://ali-m07.github.io/mattermost/
 
-> **Interactive version:** [Open the GitHub Pages guide](https://ali-m07.github.io/mattermost/)
+---
 
-## What you can do
+## Contents
 
-- Look up a user by username or user ID
-- List users, including deactivated accounts
-- Activate an account
-- Deactivate an account
-- Verify the resulting status
-- Diagnose common `401`, `403`, and `404` errors
+1. [Prerequisites](#1-prerequisites)
+2. [Quick Start: Set Up Your Token](#2-quick-start-set-up-your-token)
+3. [Finding Users](#3-finding-users)
+4. [Reading a User Object](#4-reading-a-user-object)
+5. [Activating a User](#5-activating-a-user)
+6. [Deactivating a User](#6-deactivating-a-user)
+7. [Verifying the Result](#7-verifying-the-result)
+8. [Error Reference](#8-error-reference)
+9. [Shell Quoting: Bash vs. Windows CMD](#9-shell-quoting-bash-vs-windows-cmd)
+10. [Appendix: Python Equivalent](#10-appendix-python-equivalent)
 
-## Prerequisites
+---
+
+## 1. Prerequisites
 
 | Requirement | Details |
 | --- | --- |
-| Mattermost server | A reachable instance, for example `https://mattermost.example.com` |
-| Personal Access Token | Created by an account with user-management rights |
-| Client | `curl` for shell commands, or Python 3 with `requests` |
+| Mattermost server | Any reachable instance, for example `https://mattermost.example.com` |
+| Personal Access Token (PAT) | Owned by a **System Admin** or **User Manager** account |
+| `curl` | Any recent version; Git Bash is recommended on Windows |
 
-Create a token in Mattermost under **Account Settings → Security → Personal Access Tokens**. Your server must allow personal access tokens (`ServiceSettings.EnableUserAccessTokens`).
+**Creating a token:** open Mattermost → *Account Settings → Security → Personal Access Tokens → Create New Token*. The server must allow personal access tokens (`ServiceSettings.EnableUserAccessTokens`).
 
-> **Permissions:** Managing a System Admin normally requires full `manage_system` permission. LDAP/AD-managed accounts (`auth_service: "ldap"`) are controlled by LDAP, not the Mattermost API.
+**Permission notes**
 
-## Choose your platform
+- Normal users: an account with user-management rights can activate or deactivate them.
+- Target is a **System Admin**: full `manage_system` permission is required; a limited token returns `403`.
+- **LDAP/AD-managed users** (`auth_service: "ldap"`): their status is controlled by LDAP, not the API. Enable or disable them in LDAP itself.
 
-<details>
-<summary><strong>Windows CMD</strong></summary>
+---
 
-### 1. Configure and verify your token
+## 2. Quick Start: Set Up Your Token
 
-```cmd
-set MM_URL=https://mattermost.example.com
-set MM_TOKEN=<your-personal-access-token>
-curl -s -H "Authorization: Bearer %MM_TOKEN%" "%MM_URL%/api/v4/users/me"
-```
+Set two variables once per terminal session. Avoid pasting the token into shared scripts or screenshots.
 
-The last command returns the token owner's profile when the token is valid.
-
-### 2. Find or list users
-
-Look up a username and copy the returned `id` value:
-
-```cmd
-curl -s -H "Authorization: Bearer %MM_TOKEN%" "%MM_URL%/api/v4/users/username/<username>"
-set USER_ID=<user-id>
-```
-
-List active and deactivated users:
-
-```cmd
-curl -s -H "Authorization: Bearer %MM_TOKEN%" "%MM_URL%/api/v4/users?page=0&per_page=200&include_deleted=true"
-```
-
-### 3. Activate or deactivate
-
-Activate a user:
-
-```cmd
-curl -s -X PUT -H "Authorization: Bearer %MM_TOKEN%" -H "Content-Type: application/json" -d "{\"active\": true}" "%MM_URL%/api/v4/users/%USER_ID%/active"
-```
-
-Deactivate a user by changing `true` to `false`:
-
-```cmd
-curl -s -X PUT -H "Authorization: Bearer %MM_TOKEN%" -H "Content-Type: application/json" -d "{\"active\": false}" "%MM_URL%/api/v4/users/%USER_ID%/active"
-```
-
-### 4. Verify the status
-
-```cmd
-curl -s -H "Authorization: Bearer %MM_TOKEN%" "%MM_URL%/api/v4/users/%USER_ID%"
-```
-
-In the response, `"delete_at": 0` means active. A non-zero timestamp means deactivated.
-
-</details>
-
-<details>
-<summary><strong>macOS / Linux / Git Bash</strong></summary>
-
-### 1. Configure and verify your token
+**Bash / Git Bash**
 
 ```bash
 export MM_URL="https://mattermost.example.com"
 export MM_TOKEN="<your-personal-access-token>"
+```
+
+**Windows CMD**
+
+```cmd
+set MM_URL=https://mattermost.example.com
+set MM_TOKEN=<your-personal-access-token>
+```
+
+**Verify the token** — this must return the token owner's profile as JSON:
+
+```bash
 curl -s -H "Authorization: Bearer $MM_TOKEN" "$MM_URL/api/v4/users/me"
 ```
 
-### 2. Find or list users
-
-Look up a username and save its user ID:
-
-```bash
-USER_ID=$(curl -s -H "Authorization: Bearer $MM_TOKEN" \
-  "$MM_URL/api/v4/users/username/<username>" | jq -r .id)
+```cmd
+curl -s -H "Authorization: Bearer %MM_TOKEN%" "%MM_URL%/api/v4/users/me"
 ```
 
-List active and deactivated users:
+If this returns `401 ... session_expired`, the header or token is wrong — see the [Error Reference](#8-error-reference).
+
+---
+
+## 3. Finding Users
+
+The activation endpoint requires the **user ID**, so look the user up first.
+
+### By username
+
+```bash
+curl -s -H "Authorization: Bearer $MM_TOKEN" \
+  "$MM_URL/api/v4/users/username/<username>"
+```
+
+```cmd
+curl -s -H "Authorization: Bearer %MM_TOKEN%" "%MM_URL%/api/v4/users/username/<username>"
+```
+
+> In many deployments, the Mattermost username is the **local part of the email address**: `ali@corp.com` → `ali`.
+
+### By user ID
+
+```bash
+curl -s -H "Authorization: Bearer $MM_TOKEN" "$MM_URL/api/v4/users/<user_id>"
+```
+
+### Search active users
+
+```bash
+curl -s -X POST -H "Authorization: Bearer $MM_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"term": "ali"}' \
+  "$MM_URL/api/v4/users/search"
+```
+
+### List all users, including deactivated accounts
 
 ```bash
 curl -s -H "Authorization: Bearer $MM_TOKEN" \
   "$MM_URL/api/v4/users?page=0&per_page=200&include_deleted=true"
 ```
 
-### 3. Activate or deactivate
+- `page` starts at `0`; increment it until fewer than `per_page` users are returned.
+- `include_deleted=true` makes deactivated users visible.
+- With `jq`, trim the output to the essentials:
 
-Activate a user:
+```bash
+curl -s -H "Authorization: Bearer $MM_TOKEN" \
+  "$MM_URL/api/v4/users?page=0&per_page=200&include_deleted=true" \
+  | jq -r '.[] | [.username, .id, .delete_at] | @tsv'
+```
+
+---
+
+## 4. Reading a User Object
+
+```json
+{
+  "id": "nkn7n3rc1if87bbdq9kf73553e",
+  "username": "hardik",
+  "email": "hardik@corp.com",
+  "roles": "system_user",
+  "auth_service": "",
+  "delete_at": 0
+}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `id` | 26-character user ID required for status changes |
+| `username` / `email` | Identification fields |
+| `roles` | Contains `system_admin` when the user is a System Admin |
+| `auth_service` | A non-empty value such as `ldap` means an external provider manages the account |
+| `delete_at` | **`0` means active; a non-zero timestamp means deactivated** |
+
+---
+
+## 5. Activating a User
+
+First, obtain the user ID. Bash can capture it directly with `jq`:
+
+```bash
+USER_ID=$(curl -s -H "Authorization: Bearer $MM_TOKEN" \
+  "$MM_URL/api/v4/users/username/<username>" | jq -r .id)
+```
+
+Then activate the account:
 
 ```bash
 curl -s -X PUT -H "Authorization: Bearer $MM_TOKEN" \
@@ -119,7 +163,17 @@ curl -s -X PUT -H "Authorization: Bearer $MM_TOKEN" \
   "$MM_URL/api/v4/users/$USER_ID/active"
 ```
 
-Deactivate a user by changing `true` to `false`:
+```cmd
+curl -s -X PUT -H "Authorization: Bearer %MM_TOKEN%" -H "Content-Type: application/json" -d "{\"active\": true}" "%MM_URL%/api/v4/users/<user_id>/active"
+```
+
+A successful response contains the updated user object with `"delete_at": 0`.
+
+---
+
+## 6. Deactivating a User
+
+Use the same endpoint with the opposite value:
 
 ```bash
 curl -s -X PUT -H "Authorization: Bearer $MM_TOKEN" \
@@ -128,27 +182,61 @@ curl -s -X PUT -H "Authorization: Bearer $MM_TOKEN" \
   "$MM_URL/api/v4/users/$USER_ID/active"
 ```
 
-### 4. Verify the status
+```cmd
+curl -s -X PUT -H "Authorization: Bearer %MM_TOKEN%" -H "Content-Type: application/json" -d "{\"active\": false}" "%MM_URL%/api/v4/users/<user_id>/active"
+```
+
+> **There is no `/deactive` endpoint.** Both operations use `PUT /api/v4/users/{user_id}/active`; only the `active` value changes. Calling `/users/<id>/deactive` returns `404`.
+
+Mattermost also supports a soft-delete with `DELETE /api/v4/users/{user_id}`, but it returns an empty body. The `PUT` endpoint is usually preferable because it returns the updated user object.
+
+---
+
+## 7. Verifying the Result
+
+Fetch the user again and inspect `delete_at`:
 
 ```bash
 curl -s -H "Authorization: Bearer $MM_TOKEN" \
-  "$MM_URL/api/v4/users/$USER_ID" | jq .delete_at
+  "$MM_URL/api/v4/users/username/<username>" | jq .delete_at
 ```
 
-`0` means active. Any non-zero timestamp means deactivated.
+- `0` → active
+- Any other value → deactivated
 
-</details>
+---
 
-<details>
-<summary><strong>Python</strong></summary>
+## 8. Error Reference
 
-### 1. Install and configure
+| HTTP | Typical body | Meaning | Fix |
+| --- | --- | --- | --- |
+| `401` | `api.context.session_expired.app_error` | Token missing, invalid, expired, or the `Authorization: Bearer` header is malformed | Recheck the header and regenerate the token if needed |
+| `403` | Permission error | Token lacks rights; the target is a System Admin; or the user is LDAP-managed | Use a fully privileged token or manage LDAP users in LDAP |
+| `404` | `api.context.404.app_error` | Wrong route, such as `/users/<id>/deactive` | Use `/users/<id>/active` |
+| `404` | `app.user.get.not_found` | Unknown username or user ID | Check the username and ID |
+
+---
+
+## 9. Shell Quoting: Bash vs. Windows CMD
+
+| | Bash / Git Bash | Windows CMD |
+| --- | --- | --- |
+| Variables | `$MM_TOKEN` | `%MM_TOKEN%` |
+| Line breaks | Trailing `\` | Keep commands on one line |
+| JSON body | `-d '{"active": true}'` | `-d "{\"active\": true}"` |
+| Echo a variable | `echo $MM_TOKEN` | `echo %MM_TOKEN%` |
+
+Sending `-d '{"active": true}'` from CMD is a common failure: CMD treats single quotes literally and sends an invalid JSON body. Escape double quotes as shown above.
+
+---
+
+## 10. Appendix: Python Equivalent
+
+Install `requests` once:
 
 ```bash
 python -m pip install requests
 ```
-
-Set your token as an environment variable, then use it in Python:
 
 ```python
 import os
@@ -157,79 +245,44 @@ import requests
 BASE = "https://mattermost.example.com/api/v4"
 HEADERS = {"Authorization": f"Bearer {os.environ['MM_TOKEN']}"}
 
-response = requests.get(f"{BASE}/users/me", headers=HEADERS)
-response.raise_for_status()
+
+def get_user(username):
+    response = requests.get(f"{BASE}/users/username/{username}", headers=HEADERS)
+    response.raise_for_status()
+    return response.json()
+
+
+def list_users(page=0):
+    response = requests.get(
+        f"{BASE}/users",
+        headers=HEADERS,
+        params={"page": page, "per_page": 200, "include_deleted": "true"},
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+def set_active(user_id, active):
+    response = requests.put(
+        f"{BASE}/users/{user_id}/active",
+        headers=HEADERS,
+        json={"active": active},
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+user = get_user("hardik")
+print(user["id"], user["delete_at"])
+print(list_users())
+set_active(user["id"], True)     # Activate
+# set_active(user["id"], False)  # Deactivate
 ```
 
-### 2. Find or list users
-
-```python
-user = requests.get(f"{BASE}/users/username/<username>", headers=HEADERS)
-user.raise_for_status()
-user_id = user.json()["id"]
-
-users = requests.get(
-    f"{BASE}/users",
-    headers=HEADERS,
-    params={"page": 0, "per_page": 200, "include_deleted": "true"},
-)
-users.raise_for_status()
-print(users.json())
-```
-
-### 3. Activate or deactivate
-
-```python
-response = requests.put(
-    f"{BASE}/users/{user_id}/active",
-    headers=HEADERS,
-    json={"active": True},
-)
-response.raise_for_status()
-```
-
-Change `True` to `False` to deactivate the account.
-
-### 4. Verify the status
-
-```python
-user = requests.get(f"{BASE}/users/{user_id}", headers=HEADERS)
-user.raise_for_status()
-print(user.json()["delete_at"])
-```
-
-</details>
-
-## Important endpoint
-
-There is **no** `/deactive` endpoint.
-
-Both actions use the same endpoint and only the JSON value changes:
-
-```text
-PUT /api/v4/users/{user_id}/active
-```
-
-```json
-{"active": true}
-```
-
-Activates the user. Replace `true` with `false` to deactivate them.
-
-## Common errors
-
-| HTTP | Meaning | What to do |
-| --- | --- | --- |
-| `401` | Token is missing, invalid, expired, or the `Authorization: Bearer` header is malformed | Recreate or recheck the token and header |
-| `403` | Token lacks permission, the target is a System Admin, or the user is LDAP-managed | Use a properly privileged token; manage LDAP users in LDAP |
-| `404` | Incorrect URL, unknown user ID, or use of `/deactive` | Use `/users/{user_id}/active` and verify the user ID |
+---
 
 ## Security
 
-- Never paste a real token into a repository, issue, or screenshot.
-- Prefer environment variables such as `MM_TOKEN` over hard-coded credentials.
-- Rotate the token immediately if it has been exposed.
-
-## Detailed reference
-
-The original long-form reference is retained in [mattermost-user-management.md](mattermost-user-management.md).
+- Never commit a real Personal Access Token, include it in an issue, or show it in screenshots.
+- Store it in an environment variable such as `MM_TOKEN` or a git-ignored configuration file.
+- Rotate the token immediately if it may have been exposed.

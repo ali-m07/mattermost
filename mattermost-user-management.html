@@ -3,306 +3,446 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="A practical Mattermost REST API v4 guide for managing user activation with Windows CMD, Bash, or Python.">
-<title>Mattermost User Management</title>
+<title>Mattermost User Management — Command Guide</title>
 <style>
-  :root {
-    --navy: #0b1f3a;
-    --blue: #1668dc;
-    --blue-dark: #0f4fa8;
-    --ink: #172033;
-    --muted: #5b6673;
-    --surface: #ffffff;
-    --canvas: #f3f6fa;
-    --line: #dfe7f0;
-    --code: #0d1520;
-    --code-head: #0a111c;
-    --code-ink: #dce7f5;
-    --code-subtle: #91a3bb;
-    --note: #eaf2fe;
-    --note-ink: #16477f;
-    --warning: #fff7e0;
-    --warning-ink: #714300;
-    --radius: 16px;
+  :root{
+    --ink:#1b2430; --muted:#5b6673; --accent:#1668dc; --accent-dark:#0f4fa8;
+    --bg:#f3f6fa; --card:#ffffff; --line:#e3e8ef;
+    --code-bg:#0d1520; --code-head:#0a111c; --code-ink:#d9e2f1; --code-sub:#7d8ba1;
+    --warn-bg:#fff7e0; --warn-ink:#7a4a00; --warn-line:#eab308;
+    --note-bg:#eaf2fe; --note-ink:#1d4f91; --note-line:#4a90e2;
   }
-
-  * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
-  body {
-    margin: 0;
-    background: var(--canvas);
-    color: var(--ink);
-    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    -webkit-font-smoothing: antialiased;
-  }
-  .hero {
-    background: linear-gradient(135deg, #091a31 0%, #103a70 56%, #1668dc 145%);
-    color: #fff;
-    padding: 68px 24px 104px;
-  }
-  .hero-inner, main, footer { max-width: 940px; margin: 0 auto; }
-  .eyebrow {
-    color: #a9cdfd;
-    font-size: 12px;
-    font-weight: 750;
-    letter-spacing: .18em;
-    text-transform: uppercase;
-  }
-  h1 {
-    max-width: 680px;
-    margin: 14px 0 12px;
-    font-size: clamp(32px, 5.6vw, 50px);
-    line-height: 1.08;
-    letter-spacing: -.035em;
-  }
-  .lead { max-width: 680px; margin: 0; color: #cadcf5; font-size: 18px; }
-  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 26px; }
-  .chip {
-    border: 1px solid rgba(255,255,255,.28);
-    border-radius: 999px;
-    background: rgba(255,255,255,.08);
-    padding: 5px 12px;
-    color: #eff6ff;
-    font-size: 12px;
-    font-weight: 650;
-  }
-  main { margin-top: -54px; padding: 0 20px 44px; }
-  .guide {
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    background: var(--surface);
-    box-shadow: 0 16px 46px rgba(12, 35, 70, .12);
-    padding: 42px 48px 46px;
-  }
-  h2 { margin: 0; font-size: 24px; letter-spacing: -.018em; line-height: 1.25; }
-  h3 { margin: 30px 0 10px; font-size: 17px; line-height: 1.35; }
-  p { margin: 10px 0; }
-  code {
-    border-radius: 4px;
-    background: #eaf0f8;
-    color: #0c4b9a;
-    padding: 1px 5px;
-    font: .9em ui-monospace, SFMono-Regular, Consolas, "Courier New", monospace;
-  }
-  .intro { margin: 7px 0 20px; color: var(--muted); max-width: 650px; }
-  .platform-tabs {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid var(--line);
-  }
-  .platform-tab {
-    min-height: 42px;
-    border: 1px solid #b8cae1;
-    border-radius: 8px;
-    background: #fff;
-    color: #26415f;
-    cursor: pointer;
-    padding: 9px 15px;
-    font: 700 13px/1.2 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    transition: background-color .16s ease, color .16s ease, border-color .16s ease;
-  }
-  .platform-tab:hover { border-color: var(--blue); color: var(--blue-dark); }
-  .platform-tab[aria-selected="true"] { border-color: var(--blue); background: var(--blue); color: #fff; }
-  .platform-tab:focus-visible, .copy:focus-visible { outline: 3px solid #f5b700; outline-offset: 3px; }
-  .platform-panel { animation: appear .18s ease-out; }
-  .platform-panel[hidden] { display: none; }
-  @keyframes appear { from { opacity: .2; transform: translateY(3px); } to { opacity: 1; transform: none; } }
-  .steps { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-top: 26px; }
-  .step {
-    border: 1px solid var(--line);
-    border-radius: 11px;
-    background: #fcfdff;
-    padding: 16px;
-  }
-  .step-number {
-    display: inline-flex;
-    width: 24px;
-    height: 24px;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    background: #e2edfc;
-    color: var(--blue-dark);
-    font-size: 12px;
-    font-weight: 800;
-  }
-  .step h3 { margin: 9px 0 4px; }
-  .step p { margin: 0; color: var(--muted); font-size: 14px; }
-  .code {
-    overflow: hidden;
-    margin: 14px 0 0;
-    border: 1px solid var(--code);
-    border-radius: 10px;
-    background: var(--code);
-  }
-  .code-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid #1d2b41;
-    background: var(--code-head);
-    padding: 7px 11px;
-  }
-  .lang { color: var(--code-subtle); font: 700 11px ui-monospace, SFMono-Regular, Consolas, monospace; letter-spacing: .14em; text-transform: uppercase; }
-  .copy {
-    min-height: 28px;
-    border: 1px solid #2a3d59;
-    border-radius: 6px;
-    background: transparent;
-    color: #b4c8e4;
-    cursor: pointer;
-    padding: 3px 10px;
-    font: 650 11px ui-monospace, SFMono-Regular, Consolas, monospace;
-  }
-  .copy:hover { background: #18263b; color: #fff; }
-  pre {
-    overflow-x: auto;
-    margin: 0;
-    padding: 15px;
-    color: var(--code-ink);
-    font: 13px/1.62 ui-monospace, SFMono-Regular, Consolas, "Courier New", monospace;
-  }
-  .notes { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 30px; }
-  .callout { border-left: 4px solid #4b90e8; border-radius: 0 9px 9px 0; background: var(--note); color: var(--note-ink); padding: 13px 15px; font-size: 14px; }
-  .callout.warn { border-color: #e1a900; background: var(--warning); color: var(--warning-ink); }
-  .callout strong { display: block; margin-bottom: 3px; }
-  .callout p { margin: 0; }
-  footer { padding: 0 20px 62px; color: var(--muted); font-size: 13px; text-align: center; }
-  @media (max-width: 680px) {
-    .hero { padding: 50px 20px 88px; }
-    .lead { font-size: 16px; }
-    main { padding: 0 14px 30px; }
-    .guide { padding: 26px 18px 30px; }
-    .platform-tab { flex: 1 1 100%; text-align: left; }
-    .steps, .notes { grid-template-columns: 1fr; }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    html { scroll-behavior: auto; }
-    .platform-tab { transition: none; }
-    .platform-panel { animation: none; }
-  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  .hero{background:linear-gradient(135deg,#0b1f3a 0%,#123f77 55%,#1668dc 135%);color:#fff;padding:64px 24px 92px}
+  .hero-inner{max-width:900px;margin:0 auto}
+  .eyebrow{letter-spacing:.2em;font-size:12px;font-weight:700;color:#9ec5ff;text-transform:uppercase}
+  .hero h1{font-size:clamp(28px,5vw,42px);line-height:1.12;margin:14px 0 12px;letter-spacing:-.015em}
+  .lead{font-size:17.5px;color:#c3d6f2;max-width:660px;margin:0}
+  .chips{display:flex;gap:10px;margin-top:24px;flex-wrap:wrap}
+  .chip{border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.08);
+    padding:5px 14px;border-radius:999px;font-size:12.5px;font-weight:600}
+  main{max-width:900px;margin:-48px auto 0;padding:0 20px 40px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;
+    box-shadow:0 12px 40px rgba(13,32,64,.10);padding:44px 48px}
+  footer{max-width:900px;margin:0 auto;padding:0 20px 70px;color:var(--muted);font-size:14px;text-align:center}
+  @media(max-width:640px){.card{padding:26px 18px}.hero{padding:48px 20px 84px}}
+  h2{border-left:4px solid var(--accent);padding-left:13px;margin:52px 0 14px;font-size:23px;letter-spacing:-.01em}
+  h2:first-of-type{margin-top:6px}
+  h3{margin:28px 0 10px;font-size:17px}
+  p{margin:12px 0}
+  ul,ol{margin:12px 0;padding-left:22px}
+  li{margin:5px 0}
+  a{color:var(--accent-dark);text-decoration:none}
+  a:hover{text-decoration:underline}
+  strong{font-weight:700}
+  p code,li code,td code,.lead code{background:#e9eff7;color:#0b4a9e;padding:2px 6px;border-radius:5px;
+    font-size:.88em;font-family:ui-monospace,SFMono-Regular,Consolas,"Courier New",monospace}
+  .toc{display:grid;grid-template-columns:1fr 1fr;gap:4px 30px;margin:14px 0 6px;padding:0;list-style:none}
+  @media(max-width:640px){.toc{grid-template-columns:1fr}}
+  .toc a{display:flex;gap:10px;color:var(--ink);text-decoration:none;padding:6px 9px;border-radius:8px;font-size:15px}
+  .toc a:hover{background:#eef4fd;color:var(--accent-dark);text-decoration:none}
+  .toc .n{color:var(--accent);font-weight:700;min-width:20px;font-variant-numeric:tabular-nums}
+  .platform-selector{margin:4px 0 34px;padding:20px;border:1px solid #cfe0f8;border-radius:13px;background:#f7faff}
+  .platform-selector h2{border:0;padding:0;margin:0 0 8px;font-size:19px}
+  .platform-selector p{margin:0 0 14px;color:var(--muted);font-size:14.5px}
+  .platform-tabs{display:flex;gap:8px;flex-wrap:wrap}
+  .platform-tab{appearance:none;border:1px solid #b9cbe3;background:#fff;color:#294260;cursor:pointer;
+    border-radius:8px;padding:8px 14px;font:700 13px/1.2 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    transition:background-color .16s ease,color .16s ease,border-color .16s ease,transform .16s ease}
+  .platform-tab:hover{border-color:var(--accent);color:var(--accent-dark)}
+  .platform-tab[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 3px 8px rgba(22,104,220,.2)}
+  .platform-tab:focus-visible,.copy:focus-visible,a:focus-visible{outline:3px solid #f5b700;outline-offset:3px}
+  .platform-panel[hidden]{display:none}
+  .platform-panel{animation:panel-in .18s ease-out}
+  @keyframes panel-in{from{opacity:.35;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+  .code{margin:16px 0;border-radius:10px;overflow:hidden;border:1px solid #0d1520;background:var(--code-bg)}
+  .code-head{display:flex;justify-content:space-between;align-items:center;background:var(--code-head);
+    border-bottom:1px solid #1c2a3f;padding:7px 12px}
+  .code-head .lang{font:700 11px ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.14em;
+    color:var(--code-sub);text-transform:uppercase}
+  .copy{border:1px solid #22354f;background:transparent;color:#9db1cc;cursor:pointer;padding:3px 12px;
+    border-radius:6px;font:600 11px ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.05em}
+  .copy:hover{background:#16233a;color:#fff}
+  pre{margin:0;padding:14px 16px;overflow-x:auto;color:var(--code-ink);
+    font:13.5px/1.65 ui-monospace,SFMono-Regular,Consolas,"Courier New",monospace}
+  .callout{border-left:4px solid var(--note-line);background:var(--note-bg);color:var(--note-ink);
+    border-radius:0 8px 8px 0;padding:12px 16px;margin:16px 0;font-size:14.5px}
+  .callout.warn{border-color:var(--warn-line);background:var(--warn-bg);color:var(--warn-ink)}
+  .callout p{margin:0}
+  .callout code{background:rgba(255,255,255,.55);color:inherit;padding:1px 5px;border-radius:4px;
+    font-size:.9em;font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+  .table-wrap{overflow-x:auto;margin:16px 0}
+  table{border-collapse:collapse;width:100%;font-size:14.5px}
+  th{background:#f1f5fa;text-align:left;font-size:12.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+  th,td{border:1px solid var(--line);padding:9px 13px;vertical-align:top}
+  tr:nth-child(even) td{background:#fafcfe}
+  .meta{color:var(--muted);font-size:14px;margin-top:6px}
+  @media(max-width:640px){.platform-selector{padding:16px}.platform-tab{flex:1 1 100%;text-align:left}}
+  @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.platform-tab{transition:none}.platform-panel{animation:none}}
 </style>
 </head>
 <body>
+
 <header class="hero">
   <div class="hero-inner">
     <div class="eyebrow">Mattermost · REST API v4</div>
     <h1>Mattermost User Management</h1>
-    <p class="lead">A practical guide to finding users and changing their activation status with a Personal Access Token.</p>
-    <div class="chips" aria-label="Supported platforms">
+    <p class="lead">A copy-paste-ready guide for looking users up, listing them, and activating
+      or deactivating accounts with a Personal Access Token — in Windows CMD, Bash, or Python.</p>
+    <div class="chips">
+      <span class="chip">REST API v4</span>
       <span class="chip">Windows CMD</span>
-      <span class="chip">macOS / Linux Bash</span>
+      <span class="chip">Bash</span>
       <span class="chip">Python</span>
     </div>
   </div>
 </header>
 
 <main>
-  <article class="guide" aria-labelledby="guide-title">
-    <h2 id="guide-title">Choose your platform</h2>
-    <p class="intro">Select one tab and follow the four steps. Every command uses <code>PUT /api/v4/users/{user_id}/active</code>; only the <code>active</code> value changes.</p>
+  <div class="card">
 
-    <div class="platform-tabs" role="tablist" aria-label="Command platform">
-      <button class="platform-tab" id="tab-cmd" type="button" role="tab" aria-selected="false" aria-controls="panel-cmd" tabindex="-1">Windows CMD</button>
-      <button class="platform-tab" id="tab-bash" type="button" role="tab" aria-selected="true" aria-controls="panel-bash" tabindex="0">macOS / Linux (Bash)</button>
-      <button class="platform-tab" id="tab-python" type="button" role="tab" aria-selected="false" aria-controls="panel-python" tabindex="-1">Python</button>
-    </div>
+    <section class="platform-selector" aria-labelledby="platform-selector-title">
+      <h2 id="platform-selector-title">Choose your platform</h2>
+      <p>Select a tab for a complete working flow: verify the token, find or list users, change status, and verify the result.</p>
+      <div class="platform-tabs" role="tablist" aria-label="Command platform">
+        <button class="platform-tab" id="tab-cmd" type="button" role="tab" aria-selected="false" aria-controls="panel-cmd" tabindex="-1">Windows CMD</button>
+        <button class="platform-tab" id="tab-bash" type="button" role="tab" aria-selected="true" aria-controls="panel-bash" tabindex="0">macOS / Linux (Bash)</button>
+        <button class="platform-tab" id="tab-python" type="button" role="tab" aria-selected="false" aria-controls="panel-python" tabindex="-1">Python</button>
+      </div>
 
-    <section id="panel-bash" class="platform-panel" role="tabpanel" aria-labelledby="tab-bash" tabindex="0">
-      <div class="steps">
-        <section class="step"><span class="step-number">1</span><h3>Configure and verify</h3><p>Set your server address and Personal Access Token. The last command returns your own profile.</p>
-          <div class="code"><div class="code-head"><span class="lang">bash</span><button class="copy" type="button">Copy</button></div><pre>export MM_URL="https://mattermost.example.com"
+      <div id="panel-bash" class="platform-panel" role="tabpanel" aria-labelledby="tab-bash" tabindex="0">
+        <h3>1. Set up and verify the token</h3>
+        <div class="code"><div class="code-head"><span class="lang">bash</span><button class="copy" type="button">Copy</button></div>
+<pre>export MM_URL="https://mattermost.example.com"
 export MM_TOKEN="&lt;your-personal-access-token&gt;"
 curl -s -H "Authorization: Bearer $MM_TOKEN" "$MM_URL/api/v4/users/me"</pre></div>
-        </section>
-        <section class="step"><span class="step-number">2</span><h3>Find or list users</h3><p>Look up a username to save its user id, or list active and deactivated users.</p>
-          <div class="code"><div class="code-head"><span class="lang">bash</span><button class="copy" type="button">Copy</button></div><pre>USER_ID=$(curl -s -H "Authorization: Bearer $MM_TOKEN" \
+        <h3>2. Find or list users</h3>
+        <div class="code"><div class="code-head"><span class="lang">bash</span><button class="copy" type="button">Copy</button></div>
+<pre># Find a user and save the id
+USER_ID=$(curl -s -H "Authorization: Bearer $MM_TOKEN" \
   "$MM_URL/api/v4/users/username/&lt;username&gt;" | jq -r .id)
 
+# List active and deactivated users
 curl -s -H "Authorization: Bearer $MM_TOKEN" \
   "$MM_URL/api/v4/users?page=0&amp;per_page=200&amp;include_deleted=true"</pre></div>
-        </section>
-        <section class="step"><span class="step-number">3</span><h3>Change account status</h3><p>Use <code>true</code> to activate. Replace it with <code>false</code> to deactivate.</p>
-          <div class="code"><div class="code-head"><span class="lang">bash</span><button class="copy" type="button">Copy</button></div><pre>curl -s -X PUT -H "Authorization: Bearer $MM_TOKEN" \
+        <h3>3. Activate or deactivate</h3>
+        <div class="code"><div class="code-head"><span class="lang">bash</span><button class="copy" type="button">Copy</button></div>
+<pre># Activate
+curl -s -X PUT -H "Authorization: Bearer $MM_TOKEN" \
   -H "Content-Type: application/json" -d '{"active": true}' \
-  "$MM_URL/api/v4/users/$USER_ID/active"</pre></div>
-        </section>
-        <section class="step"><span class="step-number">4</span><h3>Verify the result</h3><p><code>delete_at</code> is <code>0</code> when the user is active. A non-zero timestamp means deactivated.</p>
-          <div class="code"><div class="code-head"><span class="lang">bash</span><button class="copy" type="button">Copy</button></div><pre>curl -s -H "Authorization: Bearer $MM_TOKEN" \
-  "$MM_URL/api/v4/users/$USER_ID" | jq .delete_at</pre></div>
-        </section>
-      </div>
-    </section>
+  "$MM_URL/api/v4/users/$USER_ID/active"
 
-    <section id="panel-cmd" class="platform-panel" role="tabpanel" aria-labelledby="tab-cmd" tabindex="0" hidden>
-      <div class="steps">
-        <section class="step"><span class="step-number">1</span><h3>Configure and verify</h3><p>Set your server address and Personal Access Token. The last command returns your own profile.</p>
-          <div class="code"><div class="code-head"><span class="lang">cmd</span><button class="copy" type="button">Copy</button></div><pre>set MM_URL=https://mattermost.example.com
+# Deactivate: change true to false
+curl -s -X PUT -H "Authorization: Bearer $MM_TOKEN" \
+  -H "Content-Type: application/json" -d '{"active": false}' \
+  "$MM_URL/api/v4/users/$USER_ID/active"</pre></div>
+        <h3>4. Verify status</h3>
+        <div class="code"><div class="code-head"><span class="lang">bash</span><button class="copy" type="button">Copy</button></div>
+<pre>curl -s -H "Authorization: Bearer $MM_TOKEN" \
+  "$MM_URL/api/v4/users/$USER_ID" | jq .delete_at
+# 0 means active; a non-zero timestamp means deactivated.</pre></div>
+      </div>
+
+      <div id="panel-cmd" class="platform-panel" role="tabpanel" aria-labelledby="tab-cmd" tabindex="0" hidden>
+        <h3>1. Set up and verify the token</h3>
+        <div class="code"><div class="code-head"><span class="lang">cmd</span><button class="copy" type="button">Copy</button></div>
+<pre>set MM_URL=https://mattermost.example.com
 set MM_TOKEN=&lt;your-personal-access-token&gt;
 curl -s -H "Authorization: Bearer %MM_TOKEN%" "%MM_URL%/api/v4/users/me"</pre></div>
-        </section>
-        <section class="step"><span class="step-number">2</span><h3>Find or list users</h3><p>Copy the <code>id</code> value from the lookup result into <code>USER_ID</code>.</p>
-          <div class="code"><div class="code-head"><span class="lang">cmd</span><button class="copy" type="button">Copy</button></div><pre>curl -s -H "Authorization: Bearer %MM_TOKEN%" "%MM_URL%/api/v4/users/username/&lt;username&gt;"
-set USER_ID=&lt;user-id&gt;
+        <h3>2. Find or list users</h3>
+        <div class="code"><div class="code-head"><span class="lang">cmd</span><button class="copy" type="button">Copy</button></div>
+<pre>curl -s -H "Authorization: Bearer %MM_TOKEN%" "%MM_URL%/api/v4/users/username/&lt;username&gt;"
+curl -s -H "Authorization: Bearer %MM_TOKEN%" "%MM_URL%/api/v4/users?page=0&amp;per_page=200&amp;include_deleted=true"
 
-curl -s -H "Authorization: Bearer %MM_TOKEN%" "%MM_URL%/api/v4/users?page=0&amp;per_page=200&amp;include_deleted=true"</pre></div>
-        </section>
-        <section class="step"><span class="step-number">3</span><h3>Change account status</h3><p>Use <code>true</code> to activate. Replace it with <code>false</code> to deactivate.</p>
-          <div class="code"><div class="code-head"><span class="lang">cmd</span><button class="copy" type="button">Copy</button></div><pre>curl -s -X PUT -H "Authorization: Bearer %MM_TOKEN%" -H "Content-Type: application/json" -d "{\"active\": true}" "%MM_URL%/api/v4/users/%USER_ID%/active"</pre></div>
-        </section>
-        <section class="step"><span class="step-number">4</span><h3>Verify the result</h3><p>In the JSON response, <code>"delete_at": 0</code> means the user is active.</p>
-          <div class="code"><div class="code-head"><span class="lang">cmd</span><button class="copy" type="button">Copy</button></div><pre>curl -s -H "Authorization: Bearer %MM_TOKEN%" "%MM_URL%/api/v4/users/%USER_ID%"</pre></div>
-        </section>
+REM Copy the "id" value from the lookup response:
+set USER_ID=&lt;user-id&gt;</pre></div>
+        <h3>3. Activate or deactivate</h3>
+        <div class="code"><div class="code-head"><span class="lang">cmd</span><button class="copy" type="button">Copy</button></div>
+<pre>REM Activate
+curl -s -X PUT -H "Authorization: Bearer %MM_TOKEN%" -H "Content-Type: application/json" -d "{\"active\": true}" "%MM_URL%/api/v4/users/%USER_ID%/active"
+
+REM Deactivate: change true to false
+curl -s -X PUT -H "Authorization: Bearer %MM_TOKEN%" -H "Content-Type: application/json" -d "{\"active\": false}" "%MM_URL%/api/v4/users/%USER_ID%/active"</pre></div>
+        <h3>4. Verify status</h3>
+        <div class="code"><div class="code-head"><span class="lang">cmd</span><button class="copy" type="button">Copy</button></div>
+<pre>curl -s -H "Authorization: Bearer %MM_TOKEN%" "%MM_URL%/api/v4/users/%USER_ID%"
+REM In the response: "delete_at": 0 means active.</pre></div>
       </div>
-    </section>
 
-    <section id="panel-python" class="platform-panel" role="tabpanel" aria-labelledby="tab-python" tabindex="0" hidden>
-      <div class="steps">
-        <section class="step"><span class="step-number">1</span><h3>Configure and verify</h3><p>Install <code>requests</code> once, then keep the token outside your source code.</p>
-          <div class="code"><div class="code-head"><span class="lang">python</span><button class="copy" type="button">Copy</button></div><pre># python -m pip install requests
-import os, requests
+      <div id="panel-python" class="platform-panel" role="tabpanel" aria-labelledby="tab-python" tabindex="0" hidden>
+        <h3>1. Set up and verify the token</h3>
+        <div class="code"><div class="code-head"><span class="lang">python</span><button class="copy" type="button">Copy</button></div>
+<pre># Install once: python -m pip install requests
+import requests
 
 BASE = "https://mattermost.example.com/api/v4"
-HEADERS = {"Authorization": f"Bearer {os.environ['MM_TOKEN']}"}
+TOKEN = "&lt;your-personal-access-token&gt;"
+HEADERS = {"Authorization": f"Bearer {TOKEN}"}
 requests.get(f"{BASE}/users/me", headers=HEADERS).raise_for_status()</pre></div>
-        </section>
-        <section class="step"><span class="step-number">2</span><h3>Find or list users</h3><p>Read the user id from the lookup result, then optionally list all accounts.</p>
-          <div class="code"><div class="code-head"><span class="lang">python</span><button class="copy" type="button">Copy</button></div><pre>user = requests.get(f"{BASE}/users/username/&lt;username&gt;", headers=HEADERS)
+        <h3>2. Find or list users</h3>
+        <div class="code"><div class="code-head"><span class="lang">python</span><button class="copy" type="button">Copy</button></div>
+<pre>user = requests.get(f"{BASE}/users/username/&lt;username&gt;", headers=HEADERS)
 user.raise_for_status()
 USER_ID = user.json()["id"]
 
 users = requests.get(f"{BASE}/users", headers=HEADERS,
     params={"page": 0, "per_page": 200, "include_deleted": "true"})
+users.raise_for_status()
 print(users.json())</pre></div>
-        </section>
-        <section class="step"><span class="step-number">3</span><h3>Change account status</h3><p>Use <code>True</code> to activate. Replace it with <code>False</code> to deactivate.</p>
-          <div class="code"><div class="code-head"><span class="lang">python</span><button class="copy" type="button">Copy</button></div><pre>response = requests.put(f"{BASE}/users/{USER_ID}/active", headers=HEADERS,
+        <h3>3. Activate or deactivate</h3>
+        <div class="code"><div class="code-head"><span class="lang">python</span><button class="copy" type="button">Copy</button></div>
+<pre># Activate
+response = requests.put(f"{BASE}/users/{USER_ID}/active", headers=HEADERS,
     json={"active": True})
+response.raise_for_status()
+
+# Deactivate: change True to False
+response = requests.put(f"{BASE}/users/{USER_ID}/active", headers=HEADERS,
+    json={"active": False})
 response.raise_for_status()</pre></div>
-        </section>
-        <section class="step"><span class="step-number">4</span><h3>Verify the result</h3><p><code>delete_at</code> is <code>0</code> when the user is active.</p>
-          <div class="code"><div class="code-head"><span class="lang">python</span><button class="copy" type="button">Copy</button></div><pre>user = requests.get(f"{BASE}/users/{USER_ID}", headers=HEADERS)
+        <h3>4. Verify status</h3>
+        <div class="code"><div class="code-head"><span class="lang">python</span><button class="copy" type="button">Copy</button></div>
+<pre>user = requests.get(f"{BASE}/users/{USER_ID}", headers=HEADERS)
 user.raise_for_status()
-print(user.json()["delete_at"])</pre></div>
-        </section>
+print(user.json()["delete_at"])  # 0 means active</pre></div>
       </div>
     </section>
 
-    <div class="notes" aria-label="Important notes">
-      <aside class="callout"><strong>Permissions</strong><p>Your token needs user-management rights. Changing a System Admin normally requires full <code>manage_system</code>. LDAP/AD-managed accounts must be enabled or disabled in LDAP.</p></aside>
-      <aside class="callout warn"><strong>Common mistakes</strong><p>There is no <code>/deactive</code> endpoint. A 401 means the token or header is invalid; a 403 means insufficient permission; a 404 usually means a wrong user id or route.</p></aside>
-    </div>
-  </article>
+    <h2 id="contents">Contents</h2>
+    <ol class="toc">
+      <li><a href="#s1"><span class="n">1</span> Prerequisites</a></li>
+      <li><a href="#s2"><span class="n">2</span> Quick Start: Set Up Your Token</a></li>
+      <li><a href="#s3"><span class="n">3</span> Finding Users</a></li>
+      <li><a href="#s4"><span class="n">4</span> Reading a User Object</a></li>
+      <li><a href="#s5"><span class="n">5</span> Activating a User</a></li>
+      <li><a href="#s6"><span class="n">6</span> Deactivating a User</a></li>
+      <li><a href="#s7"><span class="n">7</span> Verifying the Result</a></li>
+      <li><a href="#s8"><span class="n">8</span> Error Reference</a></li>
+      <li><a href="#s9"><span class="n">9</span> Shell Quoting: Bash vs. Windows CMD</a></li>
+      <li><a href="#s10"><span class="n">10</span> Appendix: Python Equivalent</a></li>
+    </ol>
+
+    <h2 id="s1">1. Prerequisites</h2>
+    <div class="table-wrap"><table>
+      <tr><th>Requirement</th><th>Details</th></tr>
+      <tr><td>Mattermost server</td><td>any reachable instance, e.g. <code>https://mattermost.example.com</code></td></tr>
+      <tr><td>Personal Access Token (PAT)</td><td>owned by a <strong>System Admin</strong> or <strong>User Manager</strong> account</td></tr>
+      <tr><td><code>curl</code></td><td>any recent version. On Windows, Git Bash is recommended</td></tr>
+    </table></div>
+    <p><strong>Creating a token:</strong> open Mattermost → <em>Account Settings → Security →
+      Personal Access Tokens → Create New Token</em>. The server must allow personal access
+      tokens (<code>ServiceSettings.EnableUserAccessTokens</code>).</p>
+    <p><strong>Permission notes</strong></p>
+    <ul>
+      <li>Normal users: any account with user-management rights can activate/deactivate them.</li>
+      <li>Target is a <strong>System Admin</strong>: requires full <code>manage_system</code> (a limited token gets <code>403</code>).</li>
+      <li><strong>LDAP/AD-managed users</strong> (<code>auth_service: "ldap"</code>): their status is controlled
+        by LDAP, not the API. Enable or disable them in LDAP itself.</li>
+    </ul>
+
+    <h2 id="s2">2. Quick Start: Set Up Your Token</h2>
+    <p>Set two variables once per terminal session. Avoid pasting the token into shared
+      scripts or screenshots.</p>
+    <div class="code"><div class="code-head"><span class="lang">bash</span><button class="copy" type="button">Copy</button></div>
+<pre>export MM_URL="https://mattermost.example.com"
+export MM_TOKEN="&lt;your-personal-access-token&gt;"</pre></div>
+    <div class="code"><div class="code-head"><span class="lang">cmd</span><button class="copy" type="button">Copy</button></div>
+<pre>set MM_URL=https://mattermost.example.com
+set MM_TOKEN=&lt;your-personal-access-token&gt;</pre></div>
+    <p><strong>Verify the token</strong> — this must return the token owner's own profile as JSON:</p>
+    <div class="code"><div class="code-head"><span class="lang">bash</span><button class="copy" type="button">Copy</button></div>
+<pre>curl -s -H "Authorization: Bearer $MM_TOKEN" "$MM_URL/api/v4/users/me"</pre></div>
+    <div class="code"><div class="code-head"><span class="lang">cmd</span><button class="copy" type="button">Copy</button></div>
+<pre>curl -s -H "Authorization: Bearer %MM_TOKEN%" "%MM_URL%/api/v4/users/me"</pre></div>
+    <p>If you get <code>401 ... session_expired</code> here, the header or the token is wrong —
+      see the <a href="#s8">Error Reference</a>.</p>
+
+    <h2 id="s3">3. Finding Users</h2>
+    <p>The activate/deactivate endpoint needs the <strong>user id</strong>, so you almost always
+      look the user up first.</p>
+
+    <h3>By username</h3>
+    <div class="code"><div class="code-head"><span class="lang">bash</span><button class="copy" type="button">Copy</button></div>
+<pre>curl -s -H "Authorization: Bearer $MM_TOKEN" \
+  "$MM_URL/api/v4/users/username/&lt;username&gt;"</pre></div>
+    <div class="code"><div class="code-head"><span class="lang">cmd</span><button class="copy" type="button">Copy</button></div>
+<pre>curl -s -H "Authorization: Bearer %MM_TOKEN%" "%MM_URL%/api/v4/users/username/&lt;username&gt;"</pre></div>
+    <div class="callout"><p>In many deployments the Mattermost username is the <strong>local part of
+      the e-mail</strong> (<code>ali@corp.com</code> → <code>ali</code>).</p></div>
+
+    <h3>By user id</h3>
+    <div class="code"><div class="code-head"><span class="lang">bash</span><button class="copy" type="button">Copy</button></div>
+<pre>curl -s -H "Authorization: Bearer $MM_TOKEN" "$MM_URL/api/v4/users/&lt;user_id&gt;"</pre></div>
+
+    <h3>Search (active users only)</h3>
+    <div class="code"><div class="code-head"><span class="lang">bash</span><button class="copy" type="button">Copy</button></div>
+<pre>curl -s -X POST -H "Authorization: Bearer $MM_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"term": "ali"}' \
+  "$MM_URL/api/v4/users/search"</pre></div>
+
+    <h3>List all users (including deactivated ones)</h3>
+    <div class="code"><div class="code-head"><span class="lang">bash</span><button class="copy" type="button">Copy</button></div>
+<pre>curl -s -H "Authorization: Bearer $MM_TOKEN" \
+  "$MM_URL/api/v4/users?page=0&amp;per_page=200&amp;include_deleted=true"</pre></div>
+    <ul>
+      <li><code>page</code> starts at <code>0</code>; keep incrementing until fewer than <code>per_page</code> users come back.</li>
+      <li><code>include_deleted=true</code> is what makes deactivated users visible.</li>
+      <li>With <code>jq</code> you can trim the output to the essentials:</li>
+    </ul>
+    <div class="code"><div class="code-head"><span class="lang">bash</span><button class="copy" type="button">Copy</button></div>
+<pre>curl -s -H "Authorization: Bearer $MM_TOKEN" \
+  "$MM_URL/api/v4/users?page=0&amp;per_page=200&amp;include_deleted=true" \
+  | jq -r '.[] | [.username, .id, .delete_at] | @tsv'</pre></div>
+
+    <h2 id="s4">4. Reading a User Object</h2>
+    <div class="code"><div class="code-head"><span class="lang">json</span><button class="copy" type="button">Copy</button></div>
+<pre>{
+  "id": "nkn7n3rc1if87bbdq9kf73553e",
+  "username": "hardik",
+  "email": "hardik@corp.com",
+  "roles": "system_user",
+  "auth_service": "",
+  "delete_at": 0
+}</pre></div>
+    <div class="table-wrap"><table>
+      <tr><th>Field</th><th>Meaning</th></tr>
+      <tr><td><code>id</code></td><td>26-character user id — required for status changes</td></tr>
+      <tr><td><code>username</code> / <code>email</code></td><td>identification</td></tr>
+      <tr><td><code>roles</code></td><td>contains <code>system_admin</code> → the user is a System Admin</td></tr>
+      <tr><td><code>auth_service</code></td><td>non-empty (e.g. <code>ldap</code>) → managed by an external auth provider</td></tr>
+      <tr><td><code>delete_at</code></td><td><strong><code>0</code> → active. Non-zero (a timestamp) → deactivated</strong></td></tr>
+    </table></div>
+
+    <h2 id="s5">5. Activating a User</h2>
+    <p>Two steps: find the id, then flip the flag.</p>
+    <p><strong>Step 1 — get the id</strong> (see <a href="#s3">Finding Users</a>) and copy the
+      <code>"id"</code> value from the JSON. With <code>jq</code> it can be captured directly:</p>
+    <div class="code"><div class="code-head"><span class="lang">bash</span><button class="copy" type="button">Copy</button></div>
+<pre>USER_ID=$(curl -s -H "Authorization: Bearer $MM_TOKEN" \
+  "$MM_URL/api/v4/users/username/&lt;username&gt;" | jq -r .id)</pre></div>
+    <p><strong>Step 2 — activate:</strong></p>
+    <div class="code"><div class="code-head"><span class="lang">bash</span><button class="copy" type="button">Copy</button></div>
+<pre>curl -s -X PUT -H "Authorization: Bearer $MM_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"active": true}' \
+  "$MM_URL/api/v4/users/$USER_ID/active"</pre></div>
+    <div class="code"><div class="code-head"><span class="lang">cmd</span><button class="copy" type="button">Copy</button></div>
+<pre>curl -s -X PUT -H "Authorization: Bearer %MM_TOKEN%" -H "Content-Type: application/json" -d "{\"active\": true}" "%MM_URL%/api/v4/users/&lt;user_id&gt;/active"</pre></div>
+    <p><strong>Success</strong> returns the full user object with <code>"delete_at": 0</code>.</p>
+
+    <h2 id="s6">6. Deactivating a User</h2>
+    <p>Same endpoint, opposite flag:</p>
+    <div class="code"><div class="code-head"><span class="lang">bash</span><button class="copy" type="button">Copy</button></div>
+<pre>curl -s -X PUT -H "Authorization: Bearer $MM_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"active": false}' \
+  "$MM_URL/api/v4/users/$USER_ID/active"</pre></div>
+    <div class="code"><div class="code-head"><span class="lang">cmd</span><button class="copy" type="button">Copy</button></div>
+<pre>curl -s -X PUT -H "Authorization: Bearer %MM_TOKEN%" -H "Content-Type: application/json" -d "{\"active\": false}" "%MM_URL%/api/v4/users/&lt;user_id&gt;/active"</pre></div>
+    <div class="callout warn"><p><strong>There is no <code>/deactive</code> endpoint.</strong>
+      Both operations go through <code>PUT /users/{user_id}/active</code> — only the
+      <code>active</code> value changes. A request to <code>/users/&lt;id&gt;/deactive</code>
+      returns <code>404</code>.</p></div>
+    <p>An equivalent soft-delete also exists — <code>DELETE /api/v4/users/{user_id}</code> —
+      but it returns an empty response body. The <code>PUT</code> form above is preferable
+      because it returns the updated user object.</p>
+
+    <h2 id="s7">7. Verifying the Result</h2>
+    <p>Fetch the user again and check <code>delete_at</code>:</p>
+    <div class="code"><div class="code-head"><span class="lang">bash</span><button class="copy" type="button">Copy</button></div>
+<pre>curl -s -H "Authorization: Bearer $MM_TOKEN" \
+  "$MM_URL/api/v4/users/username/&lt;username&gt;" | jq .delete_at</pre></div>
+    <ul>
+      <li><code>0</code> → active</li>
+      <li>anything else → deactivated</li>
+    </ul>
+
+    <h2 id="s8">8. Error Reference</h2>
+    <div class="table-wrap"><table>
+      <tr><th>HTTP</th><th>Typical body</th><th>Meaning</th><th>Fix</th></tr>
+      <tr><td><code>401</code></td>
+          <td><code>api.context.session_expired.app_error</code> — <em>Invalid or expired session</em></td>
+          <td>token missing, wrong, or the <code>Authorization: Bearer</code> header is malformed</td>
+          <td>re-check the header; regenerate the token</td></tr>
+      <tr><td><code>403</code></td>
+          <td>permission error</td>
+          <td>token lacks the rights: the target is a System Admin, or the user is LDAP-managed</td>
+          <td>use a full System Admin token; manage LDAP users in LDAP</td></tr>
+      <tr><td><code>404</code></td>
+          <td><code>api.context.404.app_error</code> — <em>no api call for the url</em></td>
+          <td>wrong path (e.g. <code>/users/&lt;id&gt;/deactive</code>)</td>
+          <td>use <code>/users/&lt;id&gt;/active</code></td></tr>
+      <tr><td><code>404</code></td>
+          <td><code>app.user.get.not_found</code></td>
+          <td>unknown username / id</td>
+          <td>check the spelling; the username is often the e-mail's local part</td></tr>
+    </table></div>
+
+    <h2 id="s9">9. Shell Quoting: Bash vs. Windows CMD</h2>
+    <div class="table-wrap"><table>
+      <tr><th></th><th>Bash / Git Bash</th><th>Windows CMD</th></tr>
+      <tr><td>Variables</td><td><code>$MM_TOKEN</code></td><td><code>%MM_TOKEN%</code></td></tr>
+      <tr><td>Line breaks</td><td>trailing <code>\</code></td><td>none — keep the command on one line</td></tr>
+      <tr><td>JSON body</td><td><code>-d '{"active": true}'</code></td><td><code>-d "{\"active\": true}"</code></td></tr>
+      <tr><td>Echo a variable</td><td><code>echo $MM_TOKEN</code></td><td><code>echo %MM_TOKEN%</code></td></tr>
+    </table></div>
+    <div class="callout warn"><p>Sending <code>-d '{"active": true}'</code> from CMD is a classic
+      silent failure: CMD treats <code>'</code> literally, so the server receives an invalid body.
+      In CMD, escape the double quotes as shown above.</p></div>
+
+    <h2 id="s10">10. Appendix: Python Equivalent</h2>
+    <p>The same operations with <code>requests</code>:</p>
+    <div class="code"><div class="code-head"><span class="lang">python</span><button class="copy" type="button">Copy</button></div>
+<pre># Install once: python -m pip install requests
+import os
+import requests
+
+BASE = "https://mattermost.example.com/api/v4"
+TOKEN = os.environ["MM_TOKEN"]
+HEADERS = {"Authorization": f"Bearer {TOKEN}"}
+
+def get_user(username):
+    response = requests.get(f"{BASE}/users/username/{username}", headers=HEADERS)
+    response.raise_for_status()
+    return response.json()
+
+def list_users(page=0):
+    response = requests.get(f"{BASE}/users", headers=HEADERS,
+        params={"page": page, "per_page": 200, "include_deleted": "true"})
+    response.raise_for_status()
+    return response.json()
+
+def set_active(user_id, active):
+    response = requests.put(f"{BASE}/users/{user_id}/active", headers=HEADERS,
+        json={"active": active})
+    response.raise_for_status()
+    return response.json()
+
+user = get_user("hardik")             # lookup by username
+print(user["id"], user["delete_at"])
+print(list_users())                    # list, including inactive users
+set_active(user["id"], True)          # activate
+# set_active(user["id"], False)       # deactivate</pre></div>
+
+    <p class="meta">Keep tokens out of repositories and shell history — store them in
+      environment variables or git-ignored config files.</p>
+
+  </div>
 </main>
 
-<footer>Mattermost User Management · REST API v4</footer>
+<footer>Mattermost User Management — cURL Guide · REST API v4</footer>
 
 <script>
 (function () {
   var tabs = Array.prototype.slice.call(document.querySelectorAll('.platform-tab'));
-  var panels = tabs.map(function (tab) { return document.getElementById(tab.getAttribute('aria-controls')); });
+  var panels = tabs.map(function (tab) {
+    return document.getElementById(tab.getAttribute('aria-controls'));
+  });
 
   function selectTab(selectedTab) {
     tabs.forEach(function (tab, index) {
@@ -316,7 +456,8 @@ print(user.json()["delete_at"])</pre></div>
   tabs.forEach(function (tab, index) {
     tab.addEventListener('click', function () { selectTab(tab); });
     tab.addEventListener('keydown', function (event) {
-      if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].indexOf(event.key) === -1) return;
+      var keys = ['ArrowLeft', 'ArrowRight', 'Home', 'End'];
+      if (keys.indexOf(event.key) === -1) return;
       event.preventDefault();
       var next = index;
       if (event.key === 'ArrowRight') next = (index + 1) % tabs.length;
@@ -330,19 +471,21 @@ print(user.json()["delete_at"])</pre></div>
 
   document.querySelectorAll('.copy').forEach(function (btn) {
     btn.addEventListener('click', function () {
-      var text = btn.closest('.code').querySelector('pre').innerText;
+      var pre = btn.closest('.code').querySelector('pre');
+      var text = pre.innerText;
       function done(ok) {
         btn.textContent = ok ? 'Copied!' : 'Failed';
         setTimeout(function () { btn.textContent = 'Copy'; }, 1400);
       }
       function fallback() {
-        var area = document.createElement('textarea');
-        area.value = text;
-        area.style.cssText = 'position:fixed;opacity:0';
-        document.body.appendChild(area);
-        area.select();
-        try { done(document.execCommand('copy')); } catch (error) { done(false); }
-        area.remove();
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { done(document.execCommand('copy')); } catch (e) { done(false); }
+        ta.remove();
       }
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);

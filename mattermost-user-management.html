@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mattermost User Management — cURL Guide</title>
+<title>Mattermost User Management — Command Guide</title>
 <style>
   :root{
     --ink:#1b2430; --muted:#5b6673; --accent:#1668dc; --accent-dark:#0f4fa8;
@@ -46,6 +46,19 @@
   .toc a{display:flex;gap:10px;color:var(--ink);text-decoration:none;padding:6px 9px;border-radius:8px;font-size:15px}
   .toc a:hover{background:#eef4fd;color:var(--accent-dark);text-decoration:none}
   .toc .n{color:var(--accent);font-weight:700;min-width:20px;font-variant-numeric:tabular-nums}
+  .platform-selector{margin:4px 0 34px;padding:20px;border:1px solid #cfe0f8;border-radius:13px;background:#f7faff}
+  .platform-selector h2{border:0;padding:0;margin:0 0 8px;font-size:19px}
+  .platform-selector p{margin:0 0 14px;color:var(--muted);font-size:14.5px}
+  .platform-tabs{display:flex;gap:8px;flex-wrap:wrap}
+  .platform-tab{appearance:none;border:1px solid #b9cbe3;background:#fff;color:#294260;cursor:pointer;
+    border-radius:8px;padding:8px 14px;font:700 13px/1.2 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    transition:background-color .16s ease,color .16s ease,border-color .16s ease,transform .16s ease}
+  .platform-tab:hover{border-color:var(--accent);color:var(--accent-dark)}
+  .platform-tab[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 3px 8px rgba(22,104,220,.2)}
+  .platform-tab:focus-visible,.copy:focus-visible,a:focus-visible{outline:3px solid #f5b700;outline-offset:3px}
+  .platform-panel[hidden]{display:none}
+  .platform-panel{animation:panel-in .18s ease-out}
+  @keyframes panel-in{from{opacity:.35;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
   .code{margin:16px 0;border-radius:10px;overflow:hidden;border:1px solid #0d1520;background:var(--code-bg)}
   .code-head{display:flex;justify-content:space-between;align-items:center;background:var(--code-head);
     border-bottom:1px solid #1c2a3f;padding:7px 12px}
@@ -68,6 +81,8 @@
   th,td{border:1px solid var(--line);padding:9px 13px;vertical-align:top}
   tr:nth-child(even) td{background:#fafcfe}
   .meta{color:var(--muted);font-size:14px;margin-top:6px}
+  @media(max-width:640px){.platform-selector{padding:16px}.platform-tab{flex:1 1 100%;text-align:left}}
+  @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.platform-tab{transition:none}.platform-panel{animation:none}}
 </style>
 </head>
 <body>
@@ -75,21 +90,127 @@
 <header class="hero">
   <div class="hero-inner">
     <div class="eyebrow">Mattermost · REST API v4</div>
-    <h1>User Management with cURL</h1>
-    <p class="lead">A copy-paste-ready cookbook for looking users up, listing them, and activating
-      or deactivating accounts — from the command line, with nothing but <code>curl</code>
-      and a Personal Access Token.</p>
+    <h1>Mattermost User Management</h1>
+    <p class="lead">A copy-paste-ready guide for looking users up, listing them, and activating
+      or deactivating accounts with a Personal Access Token — in Windows CMD, Bash, or Python.</p>
     <div class="chips">
       <span class="chip">REST API v4</span>
-      <span class="chip">cURL</span>
-      <span class="chip">Zero dependencies</span>
-      <span class="chip">Bash &amp; Windows CMD</span>
+      <span class="chip">Windows CMD</span>
+      <span class="chip">Bash</span>
+      <span class="chip">Python</span>
     </div>
   </div>
 </header>
 
 <main>
   <div class="card">
+
+    <section class="platform-selector" aria-labelledby="platform-selector-title">
+      <h2 id="platform-selector-title">Choose your platform</h2>
+      <p>Select a tab for a complete working flow: verify the token, find or list users, change status, and verify the result.</p>
+      <div class="platform-tabs" role="tablist" aria-label="Command platform">
+        <button class="platform-tab" id="tab-cmd" type="button" role="tab" aria-selected="false" aria-controls="panel-cmd" tabindex="-1">Windows CMD</button>
+        <button class="platform-tab" id="tab-bash" type="button" role="tab" aria-selected="true" aria-controls="panel-bash" tabindex="0">macOS / Linux (Bash)</button>
+        <button class="platform-tab" id="tab-python" type="button" role="tab" aria-selected="false" aria-controls="panel-python" tabindex="-1">Python</button>
+      </div>
+
+      <div id="panel-bash" class="platform-panel" role="tabpanel" aria-labelledby="tab-bash" tabindex="0">
+        <h3>1. Set up and verify the token</h3>
+        <div class="code"><div class="code-head"><span class="lang">bash</span><button class="copy" type="button">Copy</button></div>
+<pre>export MM_URL="https://mattermost.example.com"
+export MM_TOKEN="&lt;your-personal-access-token&gt;"
+curl -s -H "Authorization: Bearer $MM_TOKEN" "$MM_URL/api/v4/users/me"</pre></div>
+        <h3>2. Find or list users</h3>
+        <div class="code"><div class="code-head"><span class="lang">bash</span><button class="copy" type="button">Copy</button></div>
+<pre># Find a user and save the id
+USER_ID=$(curl -s -H "Authorization: Bearer $MM_TOKEN" \
+  "$MM_URL/api/v4/users/username/&lt;username&gt;" | jq -r .id)
+
+# List active and deactivated users
+curl -s -H "Authorization: Bearer $MM_TOKEN" \
+  "$MM_URL/api/v4/users?page=0&amp;per_page=200&amp;include_deleted=true"</pre></div>
+        <h3>3. Activate or deactivate</h3>
+        <div class="code"><div class="code-head"><span class="lang">bash</span><button class="copy" type="button">Copy</button></div>
+<pre># Activate
+curl -s -X PUT -H "Authorization: Bearer $MM_TOKEN" \
+  -H "Content-Type: application/json" -d '{"active": true}' \
+  "$MM_URL/api/v4/users/$USER_ID/active"
+
+# Deactivate: change true to false
+curl -s -X PUT -H "Authorization: Bearer $MM_TOKEN" \
+  -H "Content-Type: application/json" -d '{"active": false}' \
+  "$MM_URL/api/v4/users/$USER_ID/active"</pre></div>
+        <h3>4. Verify status</h3>
+        <div class="code"><div class="code-head"><span class="lang">bash</span><button class="copy" type="button">Copy</button></div>
+<pre>curl -s -H "Authorization: Bearer $MM_TOKEN" \
+  "$MM_URL/api/v4/users/$USER_ID" | jq .delete_at
+# 0 means active; a non-zero timestamp means deactivated.</pre></div>
+      </div>
+
+      <div id="panel-cmd" class="platform-panel" role="tabpanel" aria-labelledby="tab-cmd" tabindex="0" hidden>
+        <h3>1. Set up and verify the token</h3>
+        <div class="code"><div class="code-head"><span class="lang">cmd</span><button class="copy" type="button">Copy</button></div>
+<pre>set MM_URL=https://mattermost.example.com
+set MM_TOKEN=&lt;your-personal-access-token&gt;
+curl -s -H "Authorization: Bearer %MM_TOKEN%" "%MM_URL%/api/v4/users/me"</pre></div>
+        <h3>2. Find or list users</h3>
+        <div class="code"><div class="code-head"><span class="lang">cmd</span><button class="copy" type="button">Copy</button></div>
+<pre>curl -s -H "Authorization: Bearer %MM_TOKEN%" "%MM_URL%/api/v4/users/username/&lt;username&gt;"
+curl -s -H "Authorization: Bearer %MM_TOKEN%" "%MM_URL%/api/v4/users?page=0&amp;per_page=200&amp;include_deleted=true"
+
+REM Copy the "id" value from the lookup response:
+set USER_ID=&lt;user-id&gt;</pre></div>
+        <h3>3. Activate or deactivate</h3>
+        <div class="code"><div class="code-head"><span class="lang">cmd</span><button class="copy" type="button">Copy</button></div>
+<pre>REM Activate
+curl -s -X PUT -H "Authorization: Bearer %MM_TOKEN%" -H "Content-Type: application/json" -d "{\"active\": true}" "%MM_URL%/api/v4/users/%USER_ID%/active"
+
+REM Deactivate: change true to false
+curl -s -X PUT -H "Authorization: Bearer %MM_TOKEN%" -H "Content-Type: application/json" -d "{\"active\": false}" "%MM_URL%/api/v4/users/%USER_ID%/active"</pre></div>
+        <h3>4. Verify status</h3>
+        <div class="code"><div class="code-head"><span class="lang">cmd</span><button class="copy" type="button">Copy</button></div>
+<pre>curl -s -H "Authorization: Bearer %MM_TOKEN%" "%MM_URL%/api/v4/users/%USER_ID%"
+REM In the response: "delete_at": 0 means active.</pre></div>
+      </div>
+
+      <div id="panel-python" class="platform-panel" role="tabpanel" aria-labelledby="tab-python" tabindex="0" hidden>
+        <h3>1. Set up and verify the token</h3>
+        <div class="code"><div class="code-head"><span class="lang">python</span><button class="copy" type="button">Copy</button></div>
+<pre># Install once: python -m pip install requests
+import requests
+
+BASE = "https://mattermost.example.com/api/v4"
+TOKEN = "&lt;your-personal-access-token&gt;"
+HEADERS = {"Authorization": f"Bearer {TOKEN}"}
+requests.get(f"{BASE}/users/me", headers=HEADERS).raise_for_status()</pre></div>
+        <h3>2. Find or list users</h3>
+        <div class="code"><div class="code-head"><span class="lang">python</span><button class="copy" type="button">Copy</button></div>
+<pre>user = requests.get(f"{BASE}/users/username/&lt;username&gt;", headers=HEADERS)
+user.raise_for_status()
+USER_ID = user.json()["id"]
+
+users = requests.get(f"{BASE}/users", headers=HEADERS,
+    params={"page": 0, "per_page": 200, "include_deleted": "true"})
+users.raise_for_status()
+print(users.json())</pre></div>
+        <h3>3. Activate or deactivate</h3>
+        <div class="code"><div class="code-head"><span class="lang">python</span><button class="copy" type="button">Copy</button></div>
+<pre># Activate
+response = requests.put(f"{BASE}/users/{USER_ID}/active", headers=HEADERS,
+    json={"active": True})
+response.raise_for_status()
+
+# Deactivate: change True to False
+response = requests.put(f"{BASE}/users/{USER_ID}/active", headers=HEADERS,
+    json={"active": False})
+response.raise_for_status()</pre></div>
+        <h3>4. Verify status</h3>
+        <div class="code"><div class="code-head"><span class="lang">python</span><button class="copy" type="button">Copy</button></div>
+<pre>user = requests.get(f"{BASE}/users/{USER_ID}", headers=HEADERS)
+user.raise_for_status()
+print(user.json()["delete_at"])  # 0 means active</pre></div>
+      </div>
+    </section>
 
     <h2 id="contents">Contents</h2>
     <ol class="toc">
@@ -277,25 +398,36 @@ set MM_TOKEN=&lt;your-personal-access-token&gt;</pre></div>
     <h2 id="s10">10. Appendix: Python Equivalent</h2>
     <p>The same operations with <code>requests</code>:</p>
     <div class="code"><div class="code-head"><span class="lang">python</span><button class="copy" type="button">Copy</button></div>
-<pre>import os
+<pre># Install once: python -m pip install requests
+import os
 import requests
 
 BASE = "https://mattermost.example.com/api/v4"
-HEADERS = {"Authorization": "Bearer " + os.environ["MM_TOKEN"]}
+TOKEN = os.environ["MM_TOKEN"]
+HEADERS = {"Authorization": f"Bearer {TOKEN}"}
 
 def get_user(username):
-    r = requests.get(f"{BASE}/users/username/{username}", headers=HEADERS)
-    r.raise_for_status()
-    return r.json()
+    response = requests.get(f"{BASE}/users/username/{username}", headers=HEADERS)
+    response.raise_for_status()
+    return response.json()
+
+def list_users(page=0):
+    response = requests.get(f"{BASE}/users", headers=HEADERS,
+        params={"page": page, "per_page": 200, "include_deleted": "true"})
+    response.raise_for_status()
+    return response.json()
 
 def set_active(user_id, active):
-    r = requests.put(f"{BASE}/users/{user_id}/active",
-                     headers=HEADERS, json={"active": active})
-    r.raise_for_status()
+    response = requests.put(f"{BASE}/users/{user_id}/active", headers=HEADERS,
+        json={"active": active})
+    response.raise_for_status()
+    return response.json()
 
-user = get_user("hardik")
-set_active(user["id"], True)      # activate
-# set_active(user["id"], False)   # deactivate</pre></div>
+user = get_user("hardik")             # lookup by username
+print(user["id"], user["delete_at"])
+print(list_users())                    # list, including inactive users
+set_active(user["id"], True)          # activate
+# set_active(user["id"], False)       # deactivate</pre></div>
 
     <p class="meta">Keep tokens out of repositories and shell history — store them in
       environment variables or git-ignored config files.</p>
@@ -307,6 +439,36 @@ set_active(user["id"], True)      # activate
 
 <script>
 (function () {
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.platform-tab'));
+  var panels = tabs.map(function (tab) {
+    return document.getElementById(tab.getAttribute('aria-controls'));
+  });
+
+  function selectTab(selectedTab) {
+    tabs.forEach(function (tab, index) {
+      var selected = tab === selectedTab;
+      tab.setAttribute('aria-selected', String(selected));
+      tab.tabIndex = selected ? 0 : -1;
+      panels[index].hidden = !selected;
+    });
+  }
+
+  tabs.forEach(function (tab, index) {
+    tab.addEventListener('click', function () { selectTab(tab); });
+    tab.addEventListener('keydown', function (event) {
+      var keys = ['ArrowLeft', 'ArrowRight', 'Home', 'End'];
+      if (keys.indexOf(event.key) === -1) return;
+      event.preventDefault();
+      var next = index;
+      if (event.key === 'ArrowRight') next = (index + 1) % tabs.length;
+      if (event.key === 'ArrowLeft') next = (index - 1 + tabs.length) % tabs.length;
+      if (event.key === 'Home') next = 0;
+      if (event.key === 'End') next = tabs.length - 1;
+      tabs[next].focus();
+      selectTab(tabs[next]);
+    });
+  });
+
   document.querySelectorAll('.copy').forEach(function (btn) {
     btn.addEventListener('click', function () {
       var pre = btn.closest('.code').querySelector('pre');
